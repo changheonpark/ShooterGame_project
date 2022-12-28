@@ -4,6 +4,7 @@
 #include "ShooterAnimInstance.h"
 #include "ShooterCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 {
@@ -31,12 +32,26 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 			bIsAccelerating = false;
 		}
 
+		FRotator AimRotation = ShooterCharacter->GetBaseAimRotation();
+		FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(ShooterCharacter->GetVelocity());
+
+		MovementOffsetYaw = UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AimRotation).Yaw;
+
+		//FString RotationMessage = FString::Printf(TEXT("Base Aim Rotation : %f"), AimRotation.Yaw);
+		//FString MovementRotationMessage = FString::Printf(TEXT("Movement Rot: %f"), MovementRotation.Yaw);
+		FString OffsetMessage = FString::Printf(TEXT("Movement offset Yaw : %f"), MovementOffsetYaw);
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::White, OffsetMessage);
+		}
 	}
 
 
 }
 
-void UShooterAnimInstance::NativeInitializeAnimation()
+void UShooterAnimInstance::NativeInitializeAnimation() //애니메이션 인스턴스가 생성될때 한번 실행
 {
 	ShooterCharacter = Cast<AShooterCharacter>(TryGetPawnOwner());
+	// trygetpawnOwner : 어떤 캐릭터가 실제로 사용되는가?!
 }
