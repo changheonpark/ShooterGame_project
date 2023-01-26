@@ -80,8 +80,7 @@ Plugins/*/Intermediate/*
 DerivedDataCache/*
 ShooterGame_pro.uproject
 *.uproject
-hooks/pre-push
-hooks/post-merge
+
 ShooterGame_pro.uproject
 
 Content/ParagonLtBelica/Characters/Heroes/Belica/Meshes/Belica_Skeleton.uasset
