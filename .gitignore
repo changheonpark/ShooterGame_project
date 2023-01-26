@@ -83,8 +83,7 @@ ShooterGame_pro.uproject
 hooks/pre-push
 hooks/post-merge
 ShooterGame_pro.uproject
-hooks/post-commit
-hooks/post-checkout
+
 Content/ParagonLtBelica/Characters/Heroes/Belica/Meshes/Belica_Skeleton.uasset
 Content/ParagonLtBelica/Characters/Heroes/Belica/Meshes/Belica.uasset
 Content/_Game/HUD/BPShooterHUD.uasset
