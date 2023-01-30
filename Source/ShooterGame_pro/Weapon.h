@@ -17,7 +17,9 @@ public:
 		AWeapon();
 		virtual void Tick(float DeltaTime) override;
 		void ThrowWeapon();
+		FORCEINLINE int32 GetAmmo() const { return Ammo; }
 
+		void DecrementAmmo();
 protected:
 	void StopFalling();
 
@@ -25,4 +27,9 @@ private:
 	FTimerHandle ThrowWeaponTimer;
 	float ThrowWeaponTime;
 	bool bFalling;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Propertiese", meta = (AllowPrivateAccess = "true"))
+	int32 Ammo;
+
+
 };

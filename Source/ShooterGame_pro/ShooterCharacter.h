@@ -6,6 +6,25 @@
 #include "GameFramework/Character.h"
 #include "ShooterCharacter.generated.h"
 
+UENUM(BlueprintType)
+enum class EAmmoType : uint8
+{
+	EAT_9mm UMETA(DisplayName = "9mm"),
+	EAT_AR UMETA(DisplayName = "Assault Rifle"),
+	EAT_MAX UMETA(DisplayName = "DefaultMAX")
+};
+
+UENUM(BlueprintType)
+enum class ECombatState : uint8
+{
+	ECS_Unoccupied UMETA(DisplayName = "Unoccupied"),
+	ECS_FireTimerInProgress UMETA(DisplayName = "FireTimerInProgress"),
+	ECS_Reloading UMETA(DisplayName = "Reloading"),
+
+	ECS_MAX UMETA(DisplayName = "DefaultMAX")
+};
+
+
 UCLASS()
 class SHOOTERGAME_PRO_API AShooterCharacter : public ACharacter
 {
@@ -53,12 +72,19 @@ protected:
 	void TraceForItems();
 
 	class AWeapon* SpawnDefaultWeapon();
-	void EquipWeapon(AWeapon* WeaponToEquip, bool canSwap);
+	void EquipWeapon(AWeapon* WeaponToEquip);
 	void DropWeapon();
 	void SelecButtonPressed();
 	void SelectButtonReleased();
 	void SwapWeapon(AWeapon* WeaponToSwap); // drop current weapon and equip new one
-	
+	void InitializeAmmoMap();
+
+	bool WeaponHasAmmo();
+
+	void PlayFireSound();
+	void SendBullet();
+	void PlayGunFireMontage();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -196,6 +222,19 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	float CameraInterpElevation;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	TMap<EAmmoType, int32> AmmoMap;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 Starting9mmAmmo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 StartingARAmmo;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	ECombatState CombatState;
+
 
 	//Add / substract to/from ItemCount and updated bShouldTraceForItems
 	void IncreamentOverlappedItemCount(int8 Amount); //add or attract item

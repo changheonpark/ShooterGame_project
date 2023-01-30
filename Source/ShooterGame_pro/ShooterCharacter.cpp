@@ -25,8 +25,9 @@ CrosshairSpreadMultiplier(0.f), CrosshairVelocityFactor(0.f), CrosshairInAirFact
 ShootTimeDuration(0.05f), bFiringBullet(false),
 AutomaticFireRate(0.1f),bShouldFire(true), bFireButtonPressed(false),
 bShouldTraceForItems(false),
-CameraInterpDistance(250.f), CameraInterpElevation(65.f)
-
+CameraInterpDistance(250.f), CameraInterpElevation(65.f),
+Starting9mmAmmo(85), StartingARAmmo(120),
+CombatState(ECombatState::ECS_Unoccupied)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -64,6 +65,7 @@ void AShooterCharacter::BeginPlay()
 		CameraCurrentFOV = CameraDefaultFOV;
 	}
 	EquipWeapon(SpawnDefaultWeapon());
+	InitializeAmmoMap();
 }
 
 // Called every frame
@@ -204,52 +206,19 @@ void AShooterCharacter::LookUp(float Value)
 
 void AShooterCharacter::FireWeapon()
 {
-	if (FireSound)
-	{
-		UGameplayStatics::PlaySound2D(this, FireSound);
-	}
+	if (EquippedWeapon == nullptr) return;
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
 	
-	//(총발사 화염)  파티클 시스템을 위해 소켓을 찾는 과정
-	const USkeletalMeshSocket* BarrelSocket = GetMesh()->GetSocketByName("BarrelSocket");
-	if (BarrelSocket)
+	if (WeaponHasAmmo())
 	{
-		const FTransform SocketTransform = BarrelSocket->GetSocketTransform(GetMesh());
-		if (MuzzleFlash)
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFlash, SocketTransform);
-		}
-
-		//카메라에서 Crosshair가 가리키는 방향으로 계산이 되나, 
-		//우리가 바라는 것은 총신~crosshair가 타게팅한 지정 사이에 무언가 있는지 궁금한 것이다.
-		FVector BeamEnd;
-		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamEnd);
-		if (bBeamEnd)
-		{
-			if (ImpactParticles)
-			{
-				UGameplayStatics::SpawnEmitterAtLocation(
-					GetWorld(),
-					ImpactParticles,
-					BeamEnd);
-			}
-
-			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
-			if (Beam)
-			{
-				Beam->SetVectorParameter(FName("Target"), BeamEnd);
-			}
-		}
-
+		PlayFireSound();
+		SendBullet();
+		PlayGunFireMontage();
+		EquippedWeapon->DecrementAmmo();
+		StartFireTimer();
 	}
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance && HipFireMontage)
-	{
-		AnimInstance->Montage_Play(HipFireMontage);
-		AnimInstance->Montage_JumpToSection(FName("StartFire"));
-	}
-
-	StartCrosshairBulletFire();
+	//StartCrosshairBulletFire();
 
 }
 
@@ -360,7 +329,7 @@ void AShooterCharacter::CalculateCrosshairSpread(float DeltaTime)
 void AShooterCharacter::FireButtonPressed()
 {
 	bFireButtonPressed = true;
-	StartFireTimer();
+	FireWeapon();
 }
 
 void AShooterCharacter::FireButtonReleased()
@@ -371,22 +340,24 @@ void AShooterCharacter::FireButtonReleased()
 
 void AShooterCharacter::StartFireTimer()
 {
-	if (bShouldFire)
-	{
-		FireWeapon();
-		bShouldFire = false;
-		GetWorldTimerManager().SetTimer(AutoFireTimer, this, &AShooterCharacter::AutoFireReset, AutomaticFireRate);
+	CombatState = ECombatState::ECS_FireTimerInProgress;
+	GetWorldTimerManager().SetTimer(AutoFireTimer, this, &AShooterCharacter::AutoFireReset, AutomaticFireRate);
 			// FTimerHandle변수를 생성하여, 넣고, 사용할 클래스, 함수의 주소, 반복될 시간, Loop여부 ...
 			//SetTimer는 Tick과 다른 타임라인으로 지정된 시간마다 호출이 가능하다.
-	}
+	
 }
 
 void AShooterCharacter::AutoFireReset()
 {
-	bShouldFire = true;
-	if (bFireButtonPressed)
+	CombatState = ECombatState::ECS_Unoccupied;
+	if (WeaponHasAmmo())
 	{
-		StartFireTimer();
+		if (bFireButtonPressed)
+			FireWeapon();
+	}
+	else
+	{
+		//Reload Weapon
 	}
 }
 
@@ -396,8 +367,6 @@ void AShooterCharacter::StartCrosshairBulletFire()
 {
 	bFiringBullet = true;
 	GetWorldTimerManager().SetTimer(CrossHairShootTimer, this, &AShooterCharacter::FinishCrosshairBulletFire, ShootTimeDuration);
-	
-
 }
 
 
@@ -586,13 +555,12 @@ AWeapon* AShooterCharacter::SpawnDefaultWeapon()
 
 
 
-void AShooterCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool canSwap)
+void AShooterCharacter::EquipWeapon(AWeapon* WeaponToEquip)
 {
-	  
-	if (WeaponToEquip && canSwap)
-	{
+	if (WeaponToEquip)
+	{ 
 		const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(FName("RightHandSocket"));
-
+		
 
 		if (HandSocket)
 		{
@@ -603,7 +571,7 @@ void AShooterCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool canSwap)
 		EquippedWeapon->SetItemState(EItemState::EIS_Equipped); //여기서 총기 든 상태를 설정 -> item
 	}
 
-	
+
 }
 
 void AShooterCharacter::DropWeapon()
@@ -635,7 +603,75 @@ void AShooterCharacter::SelectButtonReleased()
 void AShooterCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 {
 	DropWeapon();
-	EquipWeapon(WeaponToSwap, true);
+	EquipWeapon(WeaponToSwap);
 	TraceHitItem = nullptr;   //마지막에 
 	TraceHitItemLastFrame = nullptr;
+}
+
+void AShooterCharacter::InitializeAmmoMap()
+{
+	AmmoMap.Add(EAmmoType::EAT_9mm, Starting9mmAmmo);
+	AmmoMap.Add(EAmmoType::EAT_AR, StartingARAmmo);
+}
+
+bool AShooterCharacter::WeaponHasAmmo()
+{
+	if(EquippedWeapon == nullptr)
+		return false;
+	
+	return EquippedWeapon->GetAmmo() > 0;
+}
+
+void AShooterCharacter::PlayFireSound()
+{
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySound2D(this, FireSound);
+	}
+}
+
+void AShooterCharacter::SendBullet()
+{
+	//(총발사 화염)  파티클 시스템을 위해 소켓을 찾는 과정
+	const USkeletalMeshSocket* BarrelSocket = EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
+	if (BarrelSocket)
+	{
+		const FTransform SocketTransform = BarrelSocket->GetSocketTransform(EquippedWeapon->GetItemMesh());
+		if (MuzzleFlash)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFlash, SocketTransform);
+		}
+
+		//카메라에서 Crosshair가 가리키는 방향으로 계산이 되나, 
+		//우리가 바라는 것은 총신~crosshair가 타게팅한 지정 사이에 무언가 있는지 궁금한 것이다.
+		FVector BeamEnd;
+		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamEnd);
+		if (bBeamEnd)
+		{
+			if (ImpactParticles)
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(
+					GetWorld(),
+					ImpactParticles,
+					BeamEnd);
+			}
+
+			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
+			if (Beam)
+			{
+				Beam->SetVectorParameter(FName("Target"), BeamEnd);
+			}
+		}
+
+	}
+}
+
+void AShooterCharacter::PlayGunFireMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && HipFireMontage)
+	{
+		AnimInstance->Montage_Play(HipFireMontage);
+		AnimInstance->Montage_JumpToSection(FName("StartFire"));
+	}
 }
