@@ -4,15 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AmmoType.h"
 #include "ShooterCharacter.generated.h"
 
-UENUM(BlueprintType)
-enum class EAmmoType : uint8
-{
-	EAT_9mm UMETA(DisplayName = "9mm"),
-	EAT_AR UMETA(DisplayName = "Assault Rifle"),
-	EAT_MAX UMETA(DisplayName = "DefaultMAX")
-};
+
 
 UENUM(BlueprintType)
 enum class ECombatState : uint8
@@ -84,6 +79,17 @@ protected:
 	void PlayFireSound();
 	void SendBullet();
 	void PlayGunFireMontage();
+
+	void ReloadButtonPressed();
+	void ReloadWeapon();
+
+	bool CarryingAmmo();
+
+	UFUNCTION(BlueprintCallable)
+	void GrabClip();
+
+	UFUNCTION(BlueprintCallable)
+	void ReleaseClip();
 
 public:	
 	// Called every frame
@@ -235,6 +241,17 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	ECombatState CombatState;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* ReloadMontage;
+
+	UFUNCTION(BlueprintCallable)
+	void FinishReloading();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	FTransform ClipTransform;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* HandSceneComponent;
 
 	//Add / substract to/from ItemCount and updated bShouldTraceForItems
 	void IncreamentOverlappedItemCount(int8 Amount); //add or attract item
