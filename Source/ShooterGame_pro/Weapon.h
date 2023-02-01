@@ -10,6 +10,9 @@
 /**
  * 
  */
+
+
+
 UENUM(BlueprintType)
 enum class EWeaponType : uint8
 {
@@ -34,11 +37,11 @@ public:
 		FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 		FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 		FORCEINLINE FName GetReloadMontageSection() const { return ReloadMontageSection; }
-		FORCEINLINE FName GetClipBoneName() const { return ClipBoneName; }
+		//FORCEINLINE FName GetClipBoneName() const { return ClipBoneName; }
 
 		void ReloadAmmo(int32 Amount);
 
-		void SetMovingClip(bool Move) { bMovingClip = Move; }
+		//void SetMovingClip(bool Move) { bMovingClip = Move; }
 
 protected:
 	void StopFalling();
@@ -64,9 +67,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Propertiese", meta = (AllowPrivateAccess = "true"))
 	FName ReloadMontageSection;
 
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Propertiese", meta = (AllowPrivateAccess = "true"))
+	//bool bMovingClip;
 
-	bool bMovingClip;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Propertiese", meta = (AllowPrivateAccess = "true"))
-	FName ClipBoneName;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Propertiese", meta = (AllowPrivateAccess = "true"))
+	//FName ClipBoneName;
 };

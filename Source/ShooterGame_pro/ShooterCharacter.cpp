@@ -167,6 +167,10 @@ FVector AShooterCharacter::GetCameraInterpLocation()
 
 void AShooterCharacter::GetPickupItem(AItem* Item)
 {
+	/*if (Item->GetEquipSound())
+	{
+		UGameplayStatics::PlaySound2D(this, Item->GetEquipSound());
+	}*/
 	auto Weapon = Cast<AWeapon>(Item);
 	if (Weapon)
 	{
@@ -623,15 +627,21 @@ void AShooterCharacter::DropWeapon()
 
 void AShooterCharacter::SelecButtonPressed()
 {
-	DropWeapon();
+	if (TraceHitItem)
+	{
+		TraceHitItem->StartItemCurve(this);
+
+		//if (TraceHitItem->GetPickupSound())
+		//{
+		//	UGameplayStatics::PlaySound2D(this, TraceHitItem->GetPickupSound());
+		//}
+	}
+	//DropWeapon();
 }
 
 void AShooterCharacter::SelectButtonReleased()
 {
-	if (TraceHitItem)
-	{
-		TraceHitItem->StartItemCurve(this);
-	}
+	
 	
 }
 
@@ -747,22 +757,22 @@ bool AShooterCharacter::CarryingAmmo()
 	return false;
 }
 
-void AShooterCharacter::GrabClip()
-{
-	if (EquippedWeapon == nullptr) return;
-
-	int32 ClipBoneIndex{ EquippedWeapon->GetItemMesh()->GetBoneIndex(EquippedWeapon->GetClipBoneName()) };
-	ClipTransform =  EquippedWeapon->GetItemMesh()->GetBoneTransform(ClipBoneIndex);
-	
-	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, true);
-	HandSceneComponent->AttachToComponent(GetMesh(), AttachmentRules, FName(TEXT("Hand_L")));
-	HandSceneComponent->SetWorldTransform(ClipTransform);
-
-	EquippedWeapon->SetMovingClip(true);
-
-}
-
-void AShooterCharacter::ReleaseClip()
-{
-	EquippedWeapon->SetMovingClip(false);
-}
+//void AShooterCharacter::GrabClip()
+//{
+//	if (EquippedWeapon == nullptr) return;
+//
+//	int32 ClipBoneIndex{ EquippedWeapon->GetItemMesh()->GetBoneIndex(EquippedWeapon->GetClipBoneName()) };
+//	ClipTransform =  EquippedWeapon->GetItemMesh()->GetBoneTransform(ClipBoneIndex);
+//	
+//	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, true);
+//	HandSceneComponent->AttachToComponent(GetMesh(), AttachmentRules, FName(TEXT("Hand_L")));
+//	HandSceneComponent->SetWorldTransform(ClipTransform);
+//
+//	EquippedWeapon->SetMovingClip(true);
+//
+//}
+//
+//void AShooterCharacter::ReleaseClip()
+//{
+//	EquippedWeapon->SetMovingClip(false);
+//}

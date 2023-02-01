@@ -85,11 +85,11 @@ protected:
 
 	bool CarryingAmmo();
 
-	UFUNCTION(BlueprintCallable)
-	void GrabClip();
+	//UFUNCTION(BlueprintCallable)
+	//void GrabClip();
 
-	UFUNCTION(BlueprintCallable)
-	void ReleaseClip();
+	//UFUNCTION(BlueprintCallable)
+	//void ReleaseClip();
 
 public:	
 	// Called every frame
@@ -257,6 +257,7 @@ public:
 	void IncreamentOverlappedItemCount(int8 Amount); //add or attract item
 
 	FVector GetCameraInterpLocation();
+
 
 	void GetPickupItem(AItem* Item);
 
