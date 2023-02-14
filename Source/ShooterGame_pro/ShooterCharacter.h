@@ -91,6 +91,8 @@ protected:
 	//UFUNCTION(BlueprintCallable)
 	//void ReleaseClip();
 
+	void CrouchButtonPressed();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -253,6 +255,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* HandSceneComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	bool bCrouching;
+
 	//Add / substract to/from ItemCount and updated bShouldTraceForItems
 	void IncreamentOverlappedItemCount(int8 Amount); //add or attract item
 
@@ -260,5 +265,9 @@ public:
 
 
 	void GetPickupItem(AItem* Item);
+
+
+	FORCEINLINE bool GetCrouching() const { return bCrouching; }
+
 
 };

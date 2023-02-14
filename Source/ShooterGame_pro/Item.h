@@ -63,7 +63,7 @@ protected:
 		int32 OtherBodyIndex);
 
 	void SetActiveStarts();
-	void SetItemProperties(EItemState State);
+	virtual void SetItemProperties(EItemState State);
 	void FinishInterping();
 	void ItemInterp(float DeltaTime);
 
