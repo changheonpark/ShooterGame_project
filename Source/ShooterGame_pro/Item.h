@@ -136,8 +136,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Property", meta = (AllowPrivateAccess = "true"))
 	UCurveFloat* ItemScaleCurve;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Property", meta = (AllowPrivateAccess = "true"))
-	//class USoundCue* PickupSound;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Property", meta = (AllowPrivateAccess = "true"))
+	class USoundCue* PickupSound;
 
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Property", meta = (AllowPrivateAccess = "true"))
 	//USoundCue* EquipSound;
@@ -151,6 +151,7 @@ public:
 	FORCEINLINE USkeletalMeshComponent* GetItemMesh() const { return ItemMesh; }
 	//FORCEINLINE USoundCue* GetPickupSound() const { return PickupSound; }
 	//FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
+	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
 
 	void StartItemCurve(AShooterCharacter* Char);
 

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AmmoType.h"
+#include "Ammo.h"
 #include "ShooterCharacter.generated.h"
 
 
@@ -92,6 +93,8 @@ protected:
 	//void ReleaseClip();
 
 	void CrouchButtonPressed();
+
+	void PickupAmmo(class AAmmo* Ammo);
 
 public:	
 	// Called every frame

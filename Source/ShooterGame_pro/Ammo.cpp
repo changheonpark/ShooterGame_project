@@ -5,6 +5,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/SphereComponent.h"
+#include "ShooterCharacter.h"
 
 AAmmo::AAmmo()
 {
@@ -16,6 +17,9 @@ AAmmo::AAmmo()
 	GetPickUpWidget()->SetupAttachment(GetRootComponent());
 	GetAreaSphere()->SetupAttachment(GetRootComponent());
 
+	AmmoCollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AmmoCollisionSphere"));
+	AmmoCollisionSphere->SetupAttachment(RootComponent);
+	AmmoCollisionSphere->SetSphereRadius(50.f);
 }
 
 
@@ -28,6 +32,8 @@ void AAmmo::Tick(float DeltaTime)
 void AAmmo::BeginPlay()
 {
 	Super::BeginPlay();
+	//callback 함수처럼 다루어준다.
+	AmmoCollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AAmmo::AmmoSphereOverlap);
 
 }
 
@@ -84,5 +90,18 @@ void AAmmo::SetItemProperties(EItemState State)
 		break;
 
 
+	}
+}
+
+void AAmmo::AmmoSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor)
+	{
+		auto OverlappedCharacter = Cast<AShooterCharacter>(OtherActor);
+		if (OverlappedCharacter)
+		{
+			StartItemCurve(OverlappedCharacter);
+			AmmoCollisionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 	}
 }
