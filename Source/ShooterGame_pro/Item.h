@@ -142,11 +142,16 @@ private:
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Property", meta = (AllowPrivateAccess = "true"))
 	//USoundCue* EquipSound;
 
+
+	virtual void InitializeCustomDepth();
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	UTexture2D* IconBackground;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	UTexture2D* IconItem;
+
+
 public:
 	FORCEINLINE UWidgetComponent* GetPickUpWidget() const { return PickUpWidget; }
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
@@ -160,5 +165,6 @@ public:
 
 	void StartItemCurve(AShooterCharacter* Char);
 
-
+	virtual void EnableCustomDepth();
+	virtual void DisableCustomDepth();
 };

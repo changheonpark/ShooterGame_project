@@ -54,6 +54,8 @@ void AItem::BeginPlay()
 	//Set Up overlap for Sphere
 	AreaSphere->OnComponentBeginOverlap.AddDynamic(this, &AItem::OnSphereOverlap);
 	AreaSphere->OnComponentEndOverlap.AddDynamic(this, &AItem::OnSphereEndOverlap);
+
+	InitializeCustomDepth();
 }
 
 void AItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -257,6 +259,22 @@ void AItem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	ItemInterp(DeltaTime); //Handle Item Interping when in the EquipInterping State
+}
+
+
+// 외곽선 표시
+void AItem::EnableCustomDepth()
+{
+	ItemMesh->SetRenderCustomDepth(true);  //외곽선 표시 관련 함수
+}
+
+void AItem::DisableCustomDepth()
+{
+	ItemMesh->SetRenderCustomDepth(false); 
+}
+
+void AItem::InitializeCustomDepth()
+{
 }
 
 void AItem::SetItemState(EItemState State)

@@ -612,6 +612,7 @@ void AShooterCharacter::TraceForItems()
 			{
 				// Show Item PickUpWidget
 				TraceHitItem->GetPickUpWidget()->SetVisibility(true);
+				TraceHitItem->EnableCustomDepth();
 			}
 
 			//we hit an AItem last frame
@@ -620,6 +621,7 @@ void AShooterCharacter::TraceForItems()
 				if (TraceHitItem != TraceHitItemLastFrame)  //우리가 마지막으로 hit trace한 아이템과 현재 가리키는것이 다르다면
 				{//혹은 아무것도 가리키고 있지 않거나!
 					TraceHitItemLastFrame->GetPickUpWidget()->SetVisibility(false);
+					TraceHitItemLastFrame->DisableCustomDepth();
 				}
 			}
 
