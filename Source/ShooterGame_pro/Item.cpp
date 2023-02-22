@@ -13,10 +13,11 @@
 // Sets default values
 AItem::AItem() : ItemName(FString("Default")), ItemCount(0), ItemRarity(EItemRarity::EIR_Common),
 ItemState(EItemState::EIS_PickUp),
-ItemInterpStartLocation(FVector(0.f)), CameraTargetLocation(FVector(0.f)),bInterping(false),
+ItemInterpStartLocation(FVector(0.f)), CameraTargetLocation(FVector(0.f)), bInterping(false),
 ZCurveTime(0.7f),
 ItemInterpX(0.f), ItemInterpY(0.f),
-InterpInitialYawOffset(0.f)
+InterpInitialYawOffset(0.f), MaterialIndex(0),
+bCanChangeCustomDepth(true)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -203,10 +204,15 @@ void AItem::FinishInterping()
 	bInterping = false;
 	if (Character)
 	{
+
 		Character->GetPickupItem(this);
 	}
 
 	SetActorScale3D(FVector(1.f));
+	DisableGlowMaterial();
+	bCanChangeCustomDepth = true;
+	DisableCustomDepth();
+	
 }
 
 void AItem::ItemInterp(float DeltaTime)
@@ -265,16 +271,45 @@ void AItem::Tick(float DeltaTime)
 // 외곽선 표시
 void AItem::EnableCustomDepth()
 {
-	ItemMesh->SetRenderCustomDepth(true);  //외곽선 표시 관련 함수
+	if(bCanChangeCustomDepth)
+		ItemMesh->SetRenderCustomDepth(true);  //외곽선 표시 관련 함수
 }
 
 void AItem::DisableCustomDepth()
 {
-	ItemMesh->SetRenderCustomDepth(false); 
+	if (bCanChangeCustomDepth)
+		ItemMesh->SetRenderCustomDepth(false); 
+}
+
+
+void AItem::EnableGlowMaterial()
+{
+	if (DynamicMaterialInstance)
+	{
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 0);
+	}
+}
+
+void AItem::DisableGlowMaterial()
+{
+	if (DynamicMaterialInstance)
+	{
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 0);
+	}
 }
 
 void AItem::InitializeCustomDepth()
 {
+}
+
+void AItem::OnConstruction(const FTransform& Transform)
+{
+	if (MaterialInstance)
+	{
+		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
+		ItemMesh->SetMaterial(MaterialIndex, DynamicMaterialInstance);
+	}
+	EnableGlowMaterial();
 }
 
 void AItem::SetItemState(EItemState State)
@@ -302,6 +337,6 @@ void AItem::StartItemCurve(AShooterCharacter* Char)
 	const float ItemRotationYaw = GetActorRotation().Yaw;
 
 	InterpInitialYawOffset = ItemRotationYaw - CameraRotationYaw;
-
+	bCanChangeCustomDepth = false;
 }
 
