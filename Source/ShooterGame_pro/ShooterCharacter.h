@@ -20,6 +20,7 @@ enum class ECombatState : uint8
 	ECS_MAX UMETA(DisplayName = "DefaultMAX")
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, CurrentSlotIndex, int32, NewSlotIndex);
 
 UCLASS()
 class SHOOTERGAME_PRO_API AShooterCharacter : public ACharacter
@@ -70,7 +71,7 @@ protected:
 	class AWeapon* SpawnDefaultWeapon();
 	void EquipWeapon(AWeapon* WeaponToEquip);
 	void DropWeapon();
-	void SelecButtonPressed();
+	void SelectButtonPressed();
 	void SelectButtonReleased();
 	void SwapWeapon(AWeapon* WeaponToSwap); // drop current weapon and equip new one
 	void InitializeAmmoMap();
@@ -95,6 +96,15 @@ protected:
 	void CrouchButtonPressed();
 
 	void PickupAmmo(class AAmmo* Ammo);
+
+	void FKeyPressed();
+	void OneKeyPressed();
+	void TwoKeyPressed();
+	void ThreeKeyPressed();
+	void FourKeyPressed();
+	void FiveKeyPressed();
+
+	void ExchangeInventoryItems(int32 CurrentItemIndex, int32 NewItemIndex);
 
 public:	
 	// Called every frame
@@ -200,10 +210,14 @@ private:
 	bool bFiringBullet;
 	FTimerHandle CrossHairShootTimer;
 
+	/*An array of AItems for our Inventory*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TArray<AItem*> Inventory;
 
 	const int32 INVENTORY_CAPACITY{ 6 };
+
+	UPROPERTY(BlueprintAssignable, Category = Delegate, meta = (AllowPrivateAccess = "true"))
+	FEquipItemDelegate EquipItemDelegate;
 
 
 

@@ -68,10 +68,12 @@ void AShooterCharacter::BeginPlay()
 		CameraCurrentFOV = CameraDefaultFOV;
 	}
 	EquipWeapon(SpawnDefaultWeapon());
+	Inventory.Add(EquippedWeapon);
+	EquippedWeapon->SetSlotIndex(0);
 	EquippedWeapon->DisableCustomDepth();
 	EquippedWeapon->DisableGlowMaterial();
 
-	Inventory.Add(EquippedWeapon);
+
 
 	InitializeAmmoMap();
 }
@@ -106,6 +108,55 @@ void AShooterCharacter::PickupAmmo(AAmmo* Ammo)
 	Ammo->Destroy();
 }
 
+void AShooterCharacter::FKeyPressed()
+{
+	if (EquippedWeapon->GetSlotIndex() == 0) return;
+
+	ExchangeInventoryItems(EquippedWeapon->GetSlotIndex(), 0);
+}
+
+void AShooterCharacter::OneKeyPressed()
+{
+	if (EquippedWeapon->GetSlotIndex() == 1) return;
+	ExchangeInventoryItems(EquippedWeapon->GetSlotIndex(), 1);
+
+}
+
+void AShooterCharacter::TwoKeyPressed()
+{
+	if (EquippedWeapon->GetSlotIndex() == 2) return;
+	ExchangeInventoryItems(EquippedWeapon->GetSlotIndex(), 2);
+}
+
+void AShooterCharacter::ThreeKeyPressed()
+{
+	if (EquippedWeapon->GetSlotIndex() == 3) return;
+	ExchangeInventoryItems(EquippedWeapon->GetSlotIndex(), 3);
+}
+
+void AShooterCharacter::FourKeyPressed()
+{
+	if (EquippedWeapon->GetSlotIndex() == 4) return;
+	ExchangeInventoryItems(EquippedWeapon->GetSlotIndex(), 4);
+}
+
+void AShooterCharacter::FiveKeyPressed()
+{
+	if (EquippedWeapon->GetSlotIndex() == 5) return;
+	ExchangeInventoryItems(EquippedWeapon->GetSlotIndex(), 5);
+}
+
+void AShooterCharacter::ExchangeInventoryItems(int32 CurrentItemIndex, int32 NewItemIndex)
+{
+	if ((CurrentItemIndex == NewItemIndex) || (NewItemIndex >= Inventory.Num()) || (CombatState != ECombatState::ECS_Unoccupied)) return;
+	auto OldEquippedWeapon = EquippedWeapon;
+	auto NewWeapon = Cast<AWeapon>(Inventory[NewItemIndex]);
+	EquipWeapon(NewWeapon);
+
+	OldEquippedWeapon->SetItemState(EItemState::EIS_PickedUp);
+	NewWeapon->SetItemState(EItemState::EIS_Equipped);
+}
+
 // Called every frame
 void AShooterCharacter::Tick(float DeltaTime)
 {
@@ -138,11 +189,17 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	PlayerInputComponent->BindAction("AimingButton", IE_Pressed, this, &AShooterCharacter::AimingButtonPressed);
 	PlayerInputComponent->BindAction("AimingButton", IE_Released, this, &AShooterCharacter::AimingButtonReleased);
-	PlayerInputComponent->BindAction("Select", IE_Pressed, this, &AShooterCharacter::SelecButtonPressed);
+	PlayerInputComponent->BindAction("Select", IE_Pressed, this, &AShooterCharacter::SelectButtonPressed);
 	PlayerInputComponent->BindAction("Select", IE_Released, this, &AShooterCharacter::SelectButtonReleased);
 
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AShooterCharacter::ReloadButtonPressed);
 	//PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AShooterCharacter::CrouchButtonPressed);
+	PlayerInputComponent->BindAction("FKey", IE_Pressed, this, &AShooterCharacter::FKeyPressed);
+	PlayerInputComponent->BindAction("1Key", IE_Pressed, this, &AShooterCharacter::OneKeyPressed);
+	PlayerInputComponent->BindAction("2Key", IE_Pressed, this, &AShooterCharacter::TwoKeyPressed);
+	PlayerInputComponent->BindAction("3Key", IE_Pressed, this, &AShooterCharacter::ThreeKeyPressed);
+	PlayerInputComponent->BindAction("4Key", IE_Pressed, this, &AShooterCharacter::FourKeyPressed);
+	PlayerInputComponent->BindAction("5Key", IE_Pressed, this, &AShooterCharacter::FiveKeyPressed);
 
 }
 
@@ -215,8 +272,9 @@ void AShooterCharacter::GetPickupItem(AItem* Item)
 	{
 		if (Inventory.Num() < INVENTORY_CAPACITY)
 		{
+			Weapon->SetSlotIndex(Inventory.Num());
 			Inventory.Add(Weapon);
-			
+			Weapon->SetItemState(EItemState::EIS_PickedUp);
 		}
 		else
 		{
@@ -611,6 +669,11 @@ void AShooterCharacter::TraceForItems()
 		if (ItemTraceResult.bBlockingHit)
 		{
 			TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
+			if (TraceHitItem && TraceHitItem->GetItemState() == EItemState::EIS_EquipInterping)
+			{
+				TraceHitItem = nullptr;
+			}
+
 			if (TraceHitItem && TraceHitItem->GetPickUpWidget())
 			{
 				// Show Item PickUpWidget
@@ -667,7 +730,15 @@ void AShooterCharacter::EquipWeapon(AWeapon* WeaponToEquip)
 		EquippedWeapon->SetItemState(EItemState::EIS_Equipped); //여기서 총기 든 상태를 설정 -> item
 	}
 
+	if (EquippedWeapon == nullptr)
+	{
+		EquipItemDelegate.Broadcast(-1, WeaponToEquip->GetSlotIndex());
+	}
 
+	else
+	{
+		EquipItemDelegate.Broadcast(EquippedWeapon->GetSlotIndex(), WeaponToEquip->GetSlotIndex());
+	}
 }
 
 void AShooterCharacter::DropWeapon()
@@ -682,18 +753,18 @@ void AShooterCharacter::DropWeapon()
 	}
 }
 
-void AShooterCharacter::SelecButtonPressed()
+void AShooterCharacter::SelectButtonPressed()
 {
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
+
 	if (TraceHitItem)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Selected after TraceHit"));
 		TraceHitItem->StartItemCurve(this);
-
-		//if (TraceHitItem->GetPickupSound())
-		//{
-		//	UGameplayStatics::PlaySound2D(this, TraceHitItem->GetPickupSound());
-		//}
+		TraceHitItem = nullptr;
+		
+		
 	}
-	//DropWeapon();
 }
 
 void AShooterCharacter::SelectButtonReleased()
@@ -704,6 +775,12 @@ void AShooterCharacter::SelectButtonReleased()
 
 void AShooterCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 {
+	if (Inventory.Num() - 1 >= EquippedWeapon->GetSlotIndex())
+	{
+		Inventory[EquippedWeapon->GetSlotIndex()] = WeaponToSwap;
+		WeaponToSwap->SetSlotIndex(EquippedWeapon->GetSlotIndex());
+	}
+
 	DropWeapon();
 	EquipWeapon(WeaponToSwap);
 	TraceHitItem = nullptr;   //마지막에 

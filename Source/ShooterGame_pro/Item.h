@@ -23,8 +23,8 @@ UENUM(BlueprintType)
 enum class EItemState : uint8
 {
 	EIS_PickUp UMETA(DisplayName = "Pickup"),
-	EIS_EquipInterping UMETA(DisplayName = "Pickup"),
-	EIS_PickedUp UMETA(DisplayName = "Pickup"),
+	EIS_EquipInterping UMETA(DisplayName = "EquipInterping"),
+	EIS_PickedUp UMETA(DisplayName = "Pickedup"),
 	EIS_Equipped UMETA(DisplayName = "Equipped"),
 	EIS_Falling UMETA(DisplayName = "Falling"),
 	EIS_MAX UMETA(DisplayName = "DefaultMax"),
@@ -167,7 +167,11 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	UTexture2D* IconItem;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UTexture2D* AmmoItem;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	int32 SlotIndex;
 
 
 public:
@@ -180,6 +184,8 @@ public:
 	//FORCEINLINE USoundCue* GetPickupSound() const { return PickupSound; }
 	//FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
 	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
+	FORCEINLINE int32 GetSlotIndex() const { return SlotIndex; }
+	FORCEINLINE void SetSlotIndex(int32 index) { SlotIndex = index; }
 
 	void StartItemCurve(AShooterCharacter* Char);
 

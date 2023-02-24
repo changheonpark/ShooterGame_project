@@ -17,7 +17,8 @@ ItemInterpStartLocation(FVector(0.f)), CameraTargetLocation(FVector(0.f)), bInte
 ZCurveTime(0.7f),
 ItemInterpX(0.f), ItemInterpY(0.f),
 InterpInitialYawOffset(0.f), MaterialIndex(0),
-bCanChangeCustomDepth(true)
+bCanChangeCustomDepth(true),
+SlotIndex(0)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -162,6 +163,8 @@ void AItem::SetItemProperties(EItemState State)
 	case EItemState::EIS_Falling:
 		ItemMesh->SetSimulatePhysics(true);
 		ItemMesh->SetEnableGravity(true);
+		ItemMesh->SetVisibility(true);
+
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		ItemMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
@@ -192,6 +195,19 @@ void AItem::SetItemProperties(EItemState State)
 
 
 	case EItemState::EIS_PickedUp:
+		PickUpWidget->SetVisibility(false);
+
+		ItemMesh->SetSimulatePhysics(false);
+		ItemMesh->SetEnableGravity(false);
+		ItemMesh->SetVisibility(false);
+		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		break;
 
 	
