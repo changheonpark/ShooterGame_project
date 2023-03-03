@@ -60,7 +60,7 @@ protected:
 
 	UFUNCTION()
 	void FinishCrosshairBulletFire();
-	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
+	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FHitResult& OutHitResult);
 
 	//Linetrace for item under the crosshair
 	bool TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation);

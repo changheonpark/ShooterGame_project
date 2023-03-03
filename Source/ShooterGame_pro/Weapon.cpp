@@ -65,3 +65,32 @@ void AWeapon::StopFalling()
 	bFalling = false;
 	SetItemState(EItemState::EIS_PickUp);
 }
+
+void AWeapon::OnConstruction(const FTransform& Transform)
+{
+	const FString WeaponTablePath{ TEXT("DataTable'/Game/_Game/DataTable/WeaponDataTable.WeaponDataTable'") };
+	UDataTable* WeaponTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, *WeaponTablePath));
+
+	FWeaponDataTable* WeaponDataRow = nullptr;
+
+
+	switch (WeaponType)
+	{
+	case EWeaponType::EWT_SubmachineGun:
+		WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("SubMachineGun"), TEXT(""));
+
+		break;
+
+	case EWeaponType::EWT_AssaultRifle:
+		WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("AssaultRifle"), TEXT(""));
+		break;
+	}
+
+	if (WeaponDataRow)
+	{
+		AmmoType = WeaponDataRow->AmmoType;
+		Ammo = WeaponDataRow->WeaponAmmo;
+		MagazineCapacity = WeaponDataRow->MagazingCapacity;
+		
+	}
+}

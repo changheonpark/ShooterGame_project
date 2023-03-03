@@ -15,6 +15,7 @@
 #include "Weapon.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
+#include "BulletHitInterface.h"
 
 // Sets default values
 AShooterCharacter::AShooterCharacter() :BaseTurnRate(45.f), BaseLookUpRate(45.f), bAiming(false),
@@ -529,9 +530,11 @@ void AShooterCharacter::FinishCrosshairBulletFire()
 	bFiringBullet = false;
 }
 
-bool AShooterCharacter::GetBeamEndLocation( const FVector& MuzzleSocketLocation, FVector& OutBeamLocation)
+bool AShooterCharacter::GetBeamEndLocation( const FVector& MuzzleSocketLocation, FHitResult& OutHitResult)
 {
 	//check crosshair trace hit 
+	FVector OutBeamLocation;
+
 	FHitResult CrosshairHitResult;
 	bool bCrosshairHit = TraceUnderCrosshairs(CrosshairHitResult, OutBeamLocation);
 
@@ -546,24 +549,24 @@ bool AShooterCharacter::GetBeamEndLocation( const FVector& MuzzleSocketLocation,
 	}
 
 	//gun barrel trace 
-	FHitResult WeaponTraceHit;
+
 	const FVector WeaponTraceStart{ MuzzleSocketLocation };
 	const FVector StartToEnd{ OutBeamLocation - MuzzleSocketLocation };
 	const FVector WeaponTraceEnd{ MuzzleSocketLocation + StartToEnd * 1.25f };
 	GetWorld()->LineTraceSingleByChannel(
-		WeaponTraceHit,
+		OutHitResult,
 		WeaponTraceStart,
 		WeaponTraceEnd,
 		ECollisionChannel::ECC_Visibility
 	);
 
-	if (WeaponTraceHit.bBlockingHit)//총구 <-> 빔 end 포인트 사이에 물체가 있을때
+	if (!OutHitResult.bBlockingHit)//총구 <-> 빔 end 포인트 사이에 물체가 없을때
 	{
-		OutBeamLocation = WeaponTraceHit.Location;
-		return true;
+		OutHitResult.Location = OutBeamLocation;
+		return false;
 	}
 
-	return false;
+	return true;
 
 
 
@@ -823,22 +826,40 @@ void AShooterCharacter::SendBullet()
 
 		//카메라에서 Crosshair가 가리키는 방향으로 계산이 되나, 
 		//우리가 바라는 것은 총신~crosshair가 타게팅한 지정 사이에 무언가 있는지 궁금한 것이다.
-		FVector BeamEnd;
-		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamEnd);
+		FHitResult BeamHitResult;
+		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamHitResult);
 		if (bBeamEnd)
 		{
-			if (ImpactParticles)
+			// Hit Actor가 BulletHitInterface를 실행했는가?
+			if (BeamHitResult.GetActor())
 			{
-				UGameplayStatics::SpawnEmitterAtLocation(
-					GetWorld(),
-					ImpactParticles,
-					BeamEnd);
+				//Enemy는 IBulletHitInterface를 상속받는다. 그러므로, enemy가 부모클래스인 IBulletHitInterFace로 캐스팅 되는것은 문제가 없다.
+				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
+				if (BulletHitInterface)
+				{
+					BulletHitInterface->BulletHit_Implementation(BeamHitResult);
+				}
+
 			}
+
+			//만약 맞는게 없으면 기본 파티클을 생성한다.
+			else {
+				if (ImpactParticles)
+				{
+					UGameplayStatics::SpawnEmitterAtLocation(
+						GetWorld(),
+						ImpactParticles,
+						BeamHitResult.Location);
+				}
+			}
+
+
+			
 
 			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
 			if (Beam)
 			{
-				Beam->SetVectorParameter(FName("Target"), BeamEnd);
+				Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
 			}
 		}
 

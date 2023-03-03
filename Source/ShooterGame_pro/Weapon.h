@@ -5,11 +5,10 @@
 #include "CoreMinimal.h"
 #include "Item.h"
 #include "AmmoType.h"
+#include "Engine/DataTable.h"
 #include "Weapon.generated.h"
 
-/**
- * 
- */
+
 
 
 
@@ -20,6 +19,42 @@ enum class EWeaponType : uint8
 	EWT_AssaultRifle UMETA(DisplayName = "SubmachineGun"),
 	EWT_MAX UMETA(DisplayName = "DefaultMAX"),
 };
+
+USTRUCT(BlueprintType)
+struct FWeaponDataTable : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EAmmoType AmmoType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 WeaponAmmo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MagazingCapacity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundCue* PickUpSound;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USoundCue* EquipSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class UWidgetComponent* PickupWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USkeletalMesh* ItemMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* InventoryIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* AmmoIcon;
+};
+
 
 UCLASS()
 class SHOOTERGAME_PRO_API AWeapon : public AItem
@@ -45,6 +80,8 @@ public:
 
 protected:
 	void StopFalling();
+
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 private:
 	FTimerHandle ThrowWeaponTimer;
@@ -72,4 +109,7 @@ private:
 
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Propertiese", meta = (AllowPrivateAccess = "true"))
 	//FName ClipBoneName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
+	UDataTable* WeaponDataTable;
 };
