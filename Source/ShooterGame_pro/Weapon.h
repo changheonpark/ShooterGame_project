@@ -53,6 +53,12 @@ struct FWeaponDataTable : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTexture2D* AmmoIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HeadShotDamage;
 };
 
 
@@ -73,6 +79,8 @@ public:
 		FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 		FORCEINLINE FName GetReloadMontageSection() const { return ReloadMontageSection; }
 		//FORCEINLINE FName GetClipBoneName() const { return ClipBoneName; }
+		FORCEINLINE float GetDamage() const { return Damage; }
+		FORCEINLINE float GetHeadShotDamage() const { return HeadShotDamage; }
 
 		void ReloadAmmo(int32 Amount);
 
@@ -112,4 +120,10 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
 	UDataTable* WeaponDataTable;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
+	float Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
+	float HeadShotDamage;
 };

@@ -91,6 +91,7 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 		AmmoType = WeaponDataRow->AmmoType;
 		Ammo = WeaponDataRow->WeaponAmmo;
 		MagazineCapacity = WeaponDataRow->MagazingCapacity;
-		
+		Damage = WeaponDataRow->Damage;
+		HeadShotDamage = WeaponDataRow->HeadShotDamage;
 	}
 }

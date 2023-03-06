@@ -16,6 +16,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
 #include "BulletHitInterface.h"
+#include "Enemy.h"
 
 // Sets default values
 AShooterCharacter::AShooterCharacter() :BaseTurnRate(45.f), BaseLookUpRate(45.f), bAiming(false),
@@ -840,6 +841,29 @@ void AShooterCharacter::SendBullet()
 					BulletHitInterface->BulletHit_Implementation(BeamHitResult);
 				}
 
+				AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
+				if (HitEnemy)
+				{
+					int32 Damage{};
+					if (BeamHitResult.BoneName.ToString() == HitEnemy->GetEnemyHead())
+					{
+						//Head Shot
+						Damage = EquippedWeapon->GetHeadShotDamage();
+						UGameplayStatics::ApplyDamage(BeamHitResult.GetActor(), Damage, GetController(),
+							this, UDamageType::StaticClass());
+					}
+
+					else 
+					{
+						//Body Shot
+						Damage = EquippedWeapon->GetDamage();
+						UGameplayStatics::ApplyDamage(BeamHitResult.GetActor(), Damage,
+							GetController(),
+							this, UDamageType::StaticClass());
+					}
+					
+					HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location);
+				}
 			}
 
 			//만약 맞는게 없으면 기본 파티클을 생성한다.
