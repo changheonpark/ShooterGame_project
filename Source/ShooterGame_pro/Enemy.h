@@ -42,6 +42,11 @@ protected:
 
 	void UpdateHitNumbers();
 
+	UFUNCTION()
+	void AgroSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 otherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION(BlueprintCallable)
+	void SetStunned(bool Stunned);
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -51,8 +56,7 @@ protected:
 	class USoundCue* ImpactSound;
 
 
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float health;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -78,12 +82,33 @@ protected:
 	float hitReactTimeMax;
 
 	bool bCanHitReact;
+private:
 
 	UPROPERTY(VisibleAnywhere, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	TMap<UUserWidget*, FVector> HitNumbers;
 
 	UPROPERTY(EditAnywhere, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float HitNumberDestroyTime;
+
+	UPROPERTY(EditAnywhere, Category = "Behavior Tree", meta=(AllowPrivateAccess = "true"))
+	class UBehaviorTree* BehaviorTree;
+
+	UPROPERTY(EditAnywhere, Category = "Behavior Tree", meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	FVector PatrolPoint;
+
+	UPROPERTY(EditAnywhere, Category = "BehaviorTree", meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	FVector PatrolPoint2;
+
+	class AEnemyController* EnemyController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class USphereComponent* AgroSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	bool bStunned;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float StunChance;
 
 
 public:	
@@ -96,10 +121,15 @@ public:
 	virtual void BulletHit_Implementation(FHitResult HitResult) override;
 
 	virtual float TakeDamage(float DamageAmount,struct FDamageEvent const& DamageEvent, 
-		AController* EventInstigator, AActor* DamageCauser) override;
+	AController* EventInstigator, AActor* DamageCauser) override;
 
 	FORCEINLINE FString GetEnemyHead() const { return EnemyHeadBone; }
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void ShowHitNumber(int32 damage, FVector HitLocation);
+	void ShowHitNumber(int32 damage, FVector HitLocation , bool bHeadShot);
+
+
+	FORCEINLINE UBehaviorTree* GetBehaviorTree() const{ return BehaviorTree; }
+
+
 };

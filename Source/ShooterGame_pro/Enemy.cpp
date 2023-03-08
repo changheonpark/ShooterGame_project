@@ -6,21 +6,52 @@
 #include "Sound/SoundCue.h"
 #include "Blueprint/UserWidget.h"
 #include "particles/PxParticleSystem.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "DrawDebugHelpers.h"
+#include "EnemyController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "Components/SphereComponent.h"
+#include "ShooterCharacter.h"
 
 // Sets default values
 AEnemy::AEnemy() : health(100.0f), maxHealth(100.0f), healthBarDisplayTime(4.0f), bCanHitReact(true),
-hitReactTimeMin(.5f), hitReactTimeMax(3.f), HitNumberDestroyTime(1.5f)
+hitReactTimeMin(.5f), hitReactTimeMax(3.f), HitNumberDestroyTime(1.5f), bStunned(false), StunChance(0.5f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	AgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AgroSphere"));
+	AgroSphere->SetupAttachment(GetRootComponent());
 }
 
 // Called when the game starts or when spawned
 void AEnemy::BeginPlay()
 {
 	Super::BeginPlay();
+	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlap);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+
+	//Get the AI Controller
+	EnemyController = Cast<AEnemyController>(GetController());
+
+	const FVector WorldPatrolPoint = UKismetMathLibrary::TransformLocation(GetActorTransform(), PatrolPoint); // FVector를 리턴해준다.
+	const FVector WorldPatrolPoint2 = UKismetMathLibrary::TransformLocation(GetActorTransform(), PatrolPoint2);
+	
+
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsVector(
+			TEXT("PatrolPoint"),
+			WorldPatrolPoint);
+
+		EnemyController->GetBlackboardComponent()->SetValueAsVector(
+			TEXT("PatrolPoint2"),
+			WorldPatrolPoint2);
+
+		EnemyController->RunBehaviorTree(BehaviorTree);
+	}
+
+
 }
 
 void AEnemy::ShowHealthBar_Implementation()
@@ -28,6 +59,8 @@ void AEnemy::ShowHealthBar_Implementation()
 	GetWorldTimerManager().ClearTimer(HealthBarTimer);
 	GetWorldTimerManager().SetTimer(HealthBarTimer, this, 
 		&AEnemy::HideHealthBar, healthBarDisplayTime);
+
+
 }
 
 
@@ -58,7 +91,16 @@ void AEnemy::BulletHit_Implementation(FHitResult HitResult)
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, HitResult.Location, FRotator(0.f), true);
 	}
 	ShowHealthBar();
-	PlayHitMontage(FName("HitReactFront"));
+
+	//Stun Determine whether bullet hit stuns
+	const float stunned = FMath::FRandRange(0.f, 1.f);
+
+	if (stunned <= StunChance)
+	{
+		PlayHitMontage(FName("HitReactFront"));
+		SetStunned(true);
+	}
+	
 
 }
 
@@ -134,4 +176,31 @@ void AEnemy::UpdateHitNumbers()
 			Location, ScreenPosition);
 		HitNumber->SetPositionInViewport(ScreenPosition);
 	}
+}
+
+void AEnemy::AgroSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 otherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor == nullptr) return;
+	auto Character = Cast<AShooterCharacter>(OtherActor);
+	
+	if (Character)
+	{
+		//Set the Value of the target in blackboard key
+		EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"), Character);
+		
+	}
+}
+
+void AEnemy::SetStunned(bool Stunned)
+{
+	bStunned = Stunned;
+
+
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(TEXT("Stunned"),
+			Stunned);
+	}
+
+
 }
