@@ -30,7 +30,8 @@ bShouldTraceForItems(false),
 CameraInterpDistance(250.f), CameraInterpElevation(65.f),
 Starting9mmAmmo(85), StartingARAmmo(120),
 CombatState(ECombatState::ECS_Unoccupied),
-bCrouching(false)
+bCrouching(false),
+health(100.f), maxHealth(100.f)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -57,6 +58,20 @@ bCrouching(false)
 	GetCharacterMovement()->AirControl = 0.2f;
 
 
+}
+
+float AShooterCharacter::TakeDamage(float damageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (health - damageAmount < 0)
+	{
+		health = 0.f;
+	}
+
+	else {
+		health -= damageAmount;
+	}
+
+	return damageAmount;
 }
 
 // Called when the game starts or when spawned

@@ -30,6 +30,11 @@ class SHOOTERGAME_PRO_API AShooterCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AShooterCharacter();
+	virtual float TakeDamage(
+		float damageAmount, 
+		struct FDamageEvent const& DamageEvent,
+		class AController* EventInstigator,
+		AActor* DamageCauser) override;
 
 protected:
 	// Called when the game starts or when spawned
@@ -105,6 +110,8 @@ protected:
 	void FiveKeyPressed();
 
 	void ExchangeInventoryItems(int32 CurrentItemIndex, int32 NewItemIndex);
+
+
 
 public:	
 	// Called every frame
@@ -210,16 +217,19 @@ private:
 	bool bFiringBullet;
 	FTimerHandle CrossHairShootTimer;
 
-	/*An array of AItems for our Inventory*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
-	TArray<AItem*> Inventory;
+
 
 	const int32 INVENTORY_CAPACITY{ 6 };
 
 	UPROPERTY(BlueprintAssignable, Category = Delegate, meta = (AllowPrivateAccess = "true"))
 	FEquipItemDelegate EquipItemDelegate;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float health;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float maxHealth;
+	
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; } //간단한 것에 FORCEINLINE을 써줌.
@@ -233,11 +243,13 @@ public:
 	 
 	int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
 
+
+
+private:
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"));
 	class AItem* TraceHitItemLastFrame;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"));
-	AWeapon* EquippedWeapon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AWeapon> DefaultWeaponClass;
@@ -280,6 +292,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	bool bCrouching;
 
+	/*An array of AItems for our Inventory*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	TArray<AItem*> Inventory;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"));
+	AWeapon* EquippedWeapon;
+
+public:
+
 	//Add / substract to/from ItemCount and updated bShouldTraceForItems
 	void IncreamentOverlappedItemCount(int8 Amount); //add or attract item
 
@@ -290,6 +311,6 @@ public:
 
 
 	FORCEINLINE bool GetCrouching() const { return bCrouching; }
-
+	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
 
 };
