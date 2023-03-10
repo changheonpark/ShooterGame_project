@@ -16,7 +16,7 @@ enum class ECombatState : uint8
 	ECS_Unoccupied UMETA(DisplayName = "Unoccupied"),
 	ECS_FireTimerInProgress UMETA(DisplayName = "FireTimerInProgress"),
 	ECS_Reloading UMETA(DisplayName = "Reloading"),
-
+	ECS_Stunned UMETA(DisplayName = "Stunned"),
 	ECS_MAX UMETA(DisplayName = "DefaultMAX")
 };
 
@@ -111,7 +111,15 @@ protected:
 
 	void ExchangeInventoryItems(int32 CurrentItemIndex, int32 NewItemIndex);
 
+	UFUNCTION(BlueprintCallable)
+	void EndStun();
 
+	void Die();
+	UFUNCTION(BlueprintCallable)
+	void FinishDeath();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (PrivateAccess = "true"))
+	USoundCue* DamagedSound;
 
 public:	
 	// Called every frame
@@ -230,6 +238,21 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float maxHealth;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	USoundCue* MeleeImpactSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UParticleSystem* BloodParticles;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* HitReactMontages;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* DeathtMontages;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float stunChance;
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; } //간단한 것에 FORCEINLINE을 써줌.
@@ -312,5 +335,9 @@ public:
 
 	FORCEINLINE bool GetCrouching() const { return bCrouching; }
 	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
+	FORCEINLINE USoundCue* GetMeleeImpactSound() const { return MeleeImpactSound; }
+	FORCEINLINE UParticleSystem* GetBloodParticles() const { return BloodParticles; }
 
+	void Stun();
+	FORCEINLINE float GetStunChange() const { return stunChance; }
 };

@@ -17,6 +17,8 @@
 #include "Components/BoxComponent.h"
 #include "BulletHitInterface.h"
 #include "Enemy.h"
+#include "EnemyController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 // Sets default values
 AShooterCharacter::AShooterCharacter() :BaseTurnRate(45.f), BaseLookUpRate(45.f), bAiming(false),
@@ -25,13 +27,13 @@ HipTurnRate(90.f), HipLookUpRate(90.f), AimingTurnRate(20.f), AimingLookUpRate(2
 MouseHipTurnRate(1.0f), MouseHipLookUpRate(1.0f), MouseAimingTurnRate(0.2f), MouseAimingLookUpRate(0.2f),
 CrosshairSpreadMultiplier(0.f), CrosshairVelocityFactor(0.f), CrosshairInAirFactor(0.f), CrosshairAimFactor(0.f), CrosshairShootingFactor(0.f),
 ShootTimeDuration(0.05f), bFiringBullet(false),
-AutomaticFireRate(0.1f),bShouldFire(true), bFireButtonPressed(false),
+AutomaticFireRate(0.1f), bShouldFire(true), bFireButtonPressed(false),
 bShouldTraceForItems(false),
 CameraInterpDistance(250.f), CameraInterpElevation(65.f),
 Starting9mmAmmo(85), StartingARAmmo(120),
 CombatState(ECombatState::ECS_Unoccupied),
 bCrouching(false),
-health(100.f), maxHealth(100.f)
+health(100.f), maxHealth(100.f), stunChance(0.25f)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -62,17 +64,49 @@ health(100.f), maxHealth(100.f)
 
 float AShooterCharacter::TakeDamage(float damageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+
 	if (health - damageAmount < 0)
 	{
 		health = 0.f;
+		Die();
+
+		auto EnemyController = Cast<AEnemyController>(EventInstigator);
+		if (EnemyController)
+		{
+			EnemyController->GetBlackboardComponent()->SetValueAsBool(
+				FName(TEXT("IsCharacterDead")), true
+			);
+		}
 	}
 
 	else {
+		UGameplayStatics::PlaySoundAtLocation(this, DamagedSound, GetActorLocation());
 		health -= damageAmount;
 	}
 
 	return damageAmount;
 }
+
+void AShooterCharacter::Die()
+{
+	UAnimInstance* animInstance = GetMesh()->GetAnimInstance();
+	if (animInstance && DeathtMontages)
+	{
+		animInstance->Montage_Play(DeathtMontages);
+	}
+}
+
+void AShooterCharacter::FinishDeath()
+{
+	GetMesh()->bPauseAnims = true;
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+
+	if (PC)
+	{
+		DisableInput(PC);
+	}
+}
+
 
 // Called when the game starts or when spawned
 void AShooterCharacter::BeginPlay()
@@ -174,6 +208,12 @@ void AShooterCharacter::ExchangeInventoryItems(int32 CurrentItemIndex, int32 New
 	NewWeapon->SetItemState(EItemState::EIS_Equipped);
 }
 
+void AShooterCharacter::EndStun()
+{
+	CombatState = ECombatState::ECS_Unoccupied;
+}
+
+
 // Called every frame
 void AShooterCharacter::Tick(float DeltaTime)
 {
@@ -227,6 +267,8 @@ float AShooterCharacter::GetCrosshairSpreadMultiplier() const
 
 void AShooterCharacter::FinishReloading()
 {
+	if (CombatState == ECombatState::ECS_Stunned) return;
+
 	CombatState = ECombatState::ECS_Unoccupied;
 
 	if (EquippedWeapon == nullptr) return;
@@ -306,6 +348,20 @@ void AShooterCharacter::GetPickupItem(AItem* Item)
 	{
 		PickupAmmo(Ammo);
 	}
+}
+
+void AShooterCharacter::Stun()
+{
+	if (health <= 0.f) return;
+	CombatState = ECombatState::ECS_Stunned;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (AnimInstance && HitReactMontages)
+	{
+		AnimInstance->Montage_Play(HitReactMontages);
+	}
+
+	
 }
 
 
@@ -517,6 +573,8 @@ void AShooterCharacter::StartFireTimer()
 
 void AShooterCharacter::AutoFireReset()
 {
+	if (CombatState == ECombatState::ECS_Stunned) return;
+
 	CombatState = ECombatState::ECS_Unoccupied;
 	if (WeaponHasAmmo())
 	{

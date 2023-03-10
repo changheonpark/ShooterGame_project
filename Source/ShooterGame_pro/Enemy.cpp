@@ -2,6 +2,7 @@
 
 
 #include "Enemy.h"
+#include "Engine/SkeletalMeshSocket.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "Blueprint/UserWidget.h"
@@ -20,7 +21,8 @@
 AEnemy::AEnemy() : health(100.0f), maxHealth(100.0f), healthBarDisplayTime(4.0f), bCanHitReact(true),
 hitReactTimeMin(.5f), hitReactTimeMax(3.f), HitNumberDestroyTime(1.5f), bStunned(false), StunChance(0.5f),
 AttackLFast(TEXT("AttackLFast")), AttackRFast(TEXT("AttackRFast")), AttackL(TEXT("AttackL")), AttackR(TEXT("AttackR")),
-baseDamage(20.f)
+baseDamage(20.f), LeftWeaponSocket(TEXT("FX_Trail_L_01")), RightWeaponSocket(TEXT("FX_Trail_R_01")),
+bCanAttack(true), AttackWaitTime(1.f), bDying(false), DeathTime(4.0f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -37,9 +39,16 @@ baseDamage(20.f)
 	RightWeaponCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("Right Weapon Box"));
 	RightWeaponCollision->SetupAttachment(GetMesh(), FName("RightWeaponBone"));
 
+}
+
+// Called when the game starts or when spawned
+void AEnemy::BeginPlay()
+{
+	Super::BeginPlay();
+	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlap);
 	CombatRangeSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatRangeOverlap);
 	CombatRangeSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatRangeEndOverlap);
-
+	
 	LeftWeaponCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::OnLeftWeaponOverlap);
 	RightWeaponCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::OnRightWeaponOverlap);
 
@@ -53,13 +62,7 @@ baseDamage(20.f)
 	RightWeaponCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	RightWeaponCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	RightWeaponCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-}
 
-// Called when the game starts or when spawned
-void AEnemy::BeginPlay()
-{
-	Super::BeginPlay();
-	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlap);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 	
 	//Ignore the Camera for Mesh and Capsule (카메라랑 몬스터랑 겹쳐서 난리나는 거 피하기)
@@ -69,6 +72,11 @@ void AEnemy::BeginPlay()
 	
 	//Get the AI Controller
 	EnemyController = Cast<AEnemyController>(GetController());
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), true);
+
+	}
 
 	const FVector WorldPatrolPoint = UKismetMathLibrary::TransformLocation(GetActorTransform(), PatrolPoint); // FVector를 리턴해준다.
 	const FVector WorldPatrolPoint2 = UKismetMathLibrary::TransformLocation(GetActorTransform(), PatrolPoint2);
@@ -76,6 +84,7 @@ void AEnemy::BeginPlay()
 
 	if (EnemyController)
 	{
+
 		EnemyController->GetBlackboardComponent()->SetValueAsVector(
 			TEXT("PatrolPoint"),
 			WorldPatrolPoint);
@@ -126,6 +135,7 @@ void AEnemy::BulletHit_Implementation(FHitResult HitResult)
 	{
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, HitResult.Location, FRotator(0.f), true);
 	}
+	if (bDying) return;
 	ShowHealthBar();
 
 	//Stun Determine whether bullet hit stuns
@@ -140,8 +150,14 @@ void AEnemy::BulletHit_Implementation(FHitResult HitResult)
 
 }
 
+//DamageCauser은 몬스터 어그로 끌때 사용한다.
 float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsObject(FName("Target"), DamageCauser);
+	}
+
 	if (health - DamageAmount <= 0.f)
 	{
 		health = 0;
@@ -157,7 +173,21 @@ float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 
 void AEnemy::Die()
 {
+	if (bDying) return;
+	bDying = true;
+
 	HideHealthBar();
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && DeathMontage)
+	{
+		AnimInstance->Montage_Play(DeathMontage);
+	}
+
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("Dead"), true);
+		EnemyController->StopMovement();
+	}
 }
 
 void AEnemy::PlayHitMontage(FName Section, float PlayRate)
@@ -285,6 +315,15 @@ void AEnemy::PlayAttackMontage(FName Section, float PlayRate)
 		animInstance->Montage_JumpToSection(Section, AttackMontage);
 	}
 
+	bCanAttack = false;
+	GetWorldTimerManager().SetTimer(AttackWaitTimer, this, 
+		&AEnemy::ResetCanAttack, AttackWaitTime);
+
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), false);
+	}
+
 }
 
 FName AEnemy::GetAttackSectionName()
@@ -314,13 +353,26 @@ FName AEnemy::GetAttackSectionName()
 
 void AEnemy::OnLeftWeaponOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	DoDamage(OtherActor);
+	auto Character = Cast<AShooterCharacter>(OtherActor);
+	if (Character)
+	{
+		DoDamage(Character);
+		SpawnBlood(Character, LeftWeaponSocket);
+		StunCharacter(Character);
+	}
+	
 	
 }
 
 void AEnemy::OnRightWeaponOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	DoDamage(OtherActor);
+	auto Character = Cast<AShooterCharacter>(OtherActor);
+	if (Character)
+	{
+		DoDamage(Character);
+		SpawnBlood(Character, RightWeaponSocket);
+		StunCharacter(Character);
+	}
 }
 
 void AEnemy::ActivateLeftWeapon()
@@ -343,14 +395,74 @@ void AEnemy::DeActivateRightWeapon()
 	RightWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-void AEnemy::DoDamage(AActor* Victim)
+void AEnemy::DoDamage(AShooterCharacter* Victim)
 {
 	if (Victim == nullptr) return;
 
-	auto Character = Cast<AShooterCharacter>(Victim);
-	if (Character)
-	{
-		UGameplayStatics::ApplyDamage(Character, baseDamage, EnemyController,
+
+	UGameplayStatics::ApplyDamage(Victim, baseDamage, EnemyController,
 			this, UDamageType::StaticClass());
+	
+
+	if (Victim->GetMeleeImpactSound())
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			Victim->GetMeleeImpactSound(),
+			GetActorLocation());
 	}
+
+
+
+}
+
+void AEnemy::SpawnBlood(AShooterCharacter* Victim, FName SocketName)
+{
+	const USkeletalMeshSocket* TipSocket{ GetMesh()->GetSocketByName(SocketName) };
+
+	if (TipSocket)
+	{
+		const FTransform SocketTransform{ TipSocket->GetSocketTransform(GetMesh()) };
+		if (Victim->GetBloodParticles())
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),
+				Victim->GetBloodParticles(),
+				SocketTransform);
+		}
+	}
+}
+
+void AEnemy::StunCharacter(AShooterCharacter* Victim)
+{
+	if (Victim)
+	{
+		const float stunRand = FMath::FRandRange(0.f, 1.f);
+		if (stunRand <= Victim->GetStunChange())
+		{
+			Victim->Stun();
+		}
+
+	}
+}
+
+void AEnemy::ResetCanAttack()
+{
+	bCanAttack = true;
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), true);
+	}
+}
+
+void AEnemy::FinishDeath()
+{
+	//Destroy();
+	GetMesh()->bPauseAnims = true;
+	GetWorldTimerManager().SetTimer(DeathTimer, this,
+		&AEnemy::DestroyEnemy, DeathTime);
+}
+
+void AEnemy::DestroyEnemy()
+{
+	Destroy();
 }
